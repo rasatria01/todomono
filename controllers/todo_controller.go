@@ -10,9 +10,8 @@ import (
 )
 
 var (
-	todo = []models.Todo{}
-	seq  = 1
-	lock = sync.Mutex{}
+	todos = []models.Todo{}
+	lock  = sync.Mutex{}
 )
 
 func CreateTodo(C echo.Context) error {
@@ -25,6 +24,59 @@ func CreateTodo(C echo.Context) error {
 		return err
 	}
 	newTodo.ID = uuid.New().String()
-	todo = append(todo, newTodo)
+	todos = append(todos, newTodo)
 	return C.JSON(http.StatusCreated, &newTodo)
+}
+
+func UpdateTodo(c echo.Context) error {
+	lock.Lock()
+	defer lock.Unlock()
+
+	var updateTodo models.Todo
+	if err := c.Bind(&updateTodo); err != nil {
+		return err
+	}
+	id := c.Param("id")
+	for i, item := range todos {
+		if item.ID == id {
+			updateTodo.ID = id
+			todos[i] = updateTodo
+			return c.JSON(http.StatusOK, updateTodo)
+		}
+	}
+	return c.JSON(http.StatusNotFound, "Todo not Found")
+}
+
+func GetTodo(c echo.Context) error {
+	lock.Lock()
+	defer lock.Unlock()
+	id := c.Param("id")
+
+	for _, item := range todos {
+		if item.ID == id {
+			return c.JSON(http.StatusOK, item)
+		}
+	}
+	return c.JSON(http.StatusNotFound, "Todo Not Found")
+}
+
+func GetTodos(c echo.Context) error {
+	lock.Lock()
+	defer lock.Unlock()
+
+	return c.JSON(http.StatusOK, todos)
+}
+
+func DeleteTodo(c echo.Context) error {
+	lock.Lock()
+	defer lock.Unlock()
+	id := c.Param("id")
+
+	for i, item := range todos {
+		if item.ID == id {
+			todos = append(todos[:i], todos[i+1:]...)
+			return c.JSON(http.StatusNoContent, nil)
+		}
+	}
+	return c.JSON(http.StatusNotFound, "Todo not Found")
 }
