@@ -3,9 +3,9 @@ package controllers
 import (
 	"net/http"
 	"sync"
+	Config "todomono/config"
 	"todomono/models"
 
-	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 )
 
@@ -18,14 +18,33 @@ func CreateTodo(C echo.Context) error {
 	lock.Lock()
 	defer lock.Unlock()
 
-	var newTodo models.Todo
+	db := Config.GetDB()
 
-	if err := C.Bind(&newTodo); err != nil {
-		return err
+	newTodo := new(models.Todo)
+
+	if err := C.Bind(newTodo); err != nil {
+		data := map[string]interface{}{
+			"message": err.Error(),
+		}
+		return C.JSON(http.StatusBadRequest, data)
 	}
-	newTodo.ID = uuid.New().String()
-	todos = append(todos, newTodo)
-	return C.JSON(http.StatusCreated, &newTodo)
+
+	if err := db.Create(&newTodo).Error; err != nil {
+		data := map[string]interface{}{
+			"message": err.Error(),
+		}
+		return C.JSON(http.StatusInternalServerError, data)
+	}
+
+	response := map[string]interface{}{
+		"message": "Create Successfully",
+		"data":    newTodo,
+	}
+	return C.JSON(http.StatusOK, response)
+
+	// newTodo.ID = uuid.New().String()
+	// todos = append(todos, newTodo)
+	// return C.JSON(http.StatusCreated, &newTodo)
 }
 
 func UpdateTodo(c echo.Context) error {
@@ -36,27 +55,27 @@ func UpdateTodo(c echo.Context) error {
 	if err := c.Bind(&updateTodo); err != nil {
 		return err
 	}
-	id := c.Param("id")
-	for i, item := range todos {
-		if item.ID == id {
-			updateTodo.ID = id
-			todos[i] = updateTodo
-			return c.JSON(http.StatusOK, updateTodo)
-		}
-	}
+	// id := c.Param("id")
+	// for i, item := range todos {
+	// 	if item.ID == id {
+	// 		updateTodo.ID = id
+	// 		todos[i] = updateTodo
+	// 		return c.JSON(http.StatusOK, updateTodo)
+	// 	}
+	// }
 	return c.JSON(http.StatusNotFound, "Todo not Found")
 }
 
 func GetTodo(c echo.Context) error {
 	lock.Lock()
 	defer lock.Unlock()
-	id := c.Param("id")
+	// id := c.Param("id")
 
-	for _, item := range todos {
-		if item.ID == id {
-			return c.JSON(http.StatusOK, item)
-		}
-	}
+	// for _, item := range todos {
+	// 	if item.ID == id {
+	// 		return c.JSON(http.StatusOK, item)
+	// 	}
+	// }
 	return c.JSON(http.StatusNotFound, "Todo Not Found")
 }
 
@@ -64,19 +83,35 @@ func GetTodos(c echo.Context) error {
 	lock.Lock()
 	defer lock.Unlock()
 
-	return c.JSON(http.StatusOK, todos)
+	db := Config.GetDB()
+
+	var todo []*models.Todo
+
+	if err := db.Find(&todo); err.Error != nil {
+		data := map[string]interface{}{
+			"message": err.Error.Error(),
+		}
+		return c.JSON(http.StatusOK, data)
+	}
+
+	response := map[string]interface{}{
+		"message": "data fetch succesfully",
+		"data":    todo,
+	}
+	return c.JSON(http.StatusOK, response)
 }
 
 func DeleteTodo(c echo.Context) error {
 	lock.Lock()
 	defer lock.Unlock()
-	id := c.Param("id")
 
-	for i, item := range todos {
-		if item.ID == id {
-			todos = append(todos[:i], todos[i+1:]...)
-			return c.JSON(http.StatusNoContent, nil)
-		}
-	}
+	// id := c.Param("id")
+
+	// for i, item := range todos {
+	// 	if item.ID == id {
+	// 		todos = append(todos[:i], todos[i+1:]...)
+	// 		return c.JSON(http.StatusNoContent, nil)
+	// 	}
+	// }
 	return c.JSON(http.StatusNotFound, "Todo not Found")
 }

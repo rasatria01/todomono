@@ -6,7 +6,7 @@ POST http://localhost:8080/todos HTTP/1.1
 Content-Type: application/json
 
 {
-    "todo":"tutututu",
+    "todo":"tetete",
     "status":"not done"
 }
 

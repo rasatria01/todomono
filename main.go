@@ -1,17 +1,37 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"os"
+	Config "todomono/config"
 	"todomono/controllers"
+	"todomono/models"
 
+	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/rs/zerolog"
 )
 
 func main() {
+	errr := godotenv.Load()
+	if errr != nil {
+		panic(errr)
+	}
+	fmt.Println(os.Getenv("DB_PORT"))
 	e := echo.New()
+
+	Config.DatabaseInit()
+	defer Config.GetDB().DB()
+
+	db := Config.GetDB()
+	err := db.AutoMigrate(&models.Todo{})
+
+	if err != nil {
+		panic(err)
+	}
+
 	logger := zerolog.New(os.Stdout)
 	e.Use(middleware.RequestLoggerWithConfig(middleware.RequestLoggerConfig{
 		LogURI:     true,
