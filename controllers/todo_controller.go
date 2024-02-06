@@ -51,19 +51,39 @@ func UpdateTodo(c echo.Context) error {
 	lock.Lock()
 	defer lock.Unlock()
 
+	db := Config.GetDB()
 	var updateTodo models.Todo
 	if err := c.Bind(&updateTodo); err != nil {
-		return err
+		data := map[string]interface{}{
+			"message": err.Error(),
+		}
+		return c.JSON(http.StatusInternalServerError, data)
 	}
-	// id := c.Param("id")
-	// for i, item := range todos {
-	// 	if item.ID == id {
-	// 		updateTodo.ID = id
-	// 		todos[i] = updateTodo
-	// 		return c.JSON(http.StatusOK, updateTodo)
-	// 	}
-	// }
-	return c.JSON(http.StatusNotFound, "Todo not Found")
+	id := c.Param("id")
+
+	old_todo := new(models.Todo)
+
+	if err := db.First(&old_todo, id); err.Error != nil {
+		data := map[string]interface{}{
+			"message": err.Error.Error(),
+		}
+		return c.JSON(http.StatusInternalServerError, data)
+	}
+	old_todo.Todo = updateTodo.Todo
+	old_todo.Status = updateTodo.Status
+
+	if err := db.Save(&old_todo); err.Error != nil {
+		data := map[string]interface{}{
+			"message": err.Error.Error(),
+		}
+		return c.JSON(http.StatusInternalServerError, data)
+	}
+
+	response := map[string]interface{}{
+		"message": "Update Successfully",
+		"data":    old_todo,
+	}
+	return c.JSON(http.StatusOK, response)
 }
 
 func GetTodo(c echo.Context) error {
@@ -124,12 +144,7 @@ func DeleteTodo(c echo.Context) error {
 		}
 		return c.JSON(http.StatusInternalServerError, data)
 	}
-	// for i, item := range todos {
-	// 	if item.ID == id {
-	// 		todos = append(todos[:i], todos[i+1:]...)
-	// 		return c.JSON(http.StatusNoContent, nil)
-	// 	}
-	// }
+
 	response := map[string]interface{}{
 		"message": "Delete Successfully!",
 	}
