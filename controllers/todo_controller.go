@@ -69,14 +69,23 @@ func UpdateTodo(c echo.Context) error {
 func GetTodo(c echo.Context) error {
 	lock.Lock()
 	defer lock.Unlock()
-	// id := c.Param("id")
+	db := Config.GetDB()
 
-	// for _, item := range todos {
-	// 	if item.ID == id {
-	// 		return c.JSON(http.StatusOK, item)
-	// 	}
-	// }
-	return c.JSON(http.StatusNotFound, "Todo Not Found")
+	id := c.Param("id")
+
+	var todo = models.Todo{}
+	if err := db.First(&todo, id); err.Error != nil {
+		data := map[string]interface{}{
+			"message": err.Error.Error(),
+		}
+		return c.JSON(http.StatusNotFound, data)
+	}
+
+	response := map[string]interface{}{
+		"message": "data fetch succesfully",
+		"data":    todo,
+	}
+	return c.JSON(http.StatusOK, response)
 }
 
 func GetTodos(c echo.Context) error {
@@ -105,13 +114,24 @@ func DeleteTodo(c echo.Context) error {
 	lock.Lock()
 	defer lock.Unlock()
 
-	// id := c.Param("id")
+	db := Config.GetDB()
 
+	id := c.Param("id")
+	todo := new(models.Todo)
+	if err := db.Delete(&todo, id); err.Error != nil {
+		data := map[string]interface{}{
+			"message": err.Error.Error(),
+		}
+		return c.JSON(http.StatusInternalServerError, data)
+	}
 	// for i, item := range todos {
 	// 	if item.ID == id {
 	// 		todos = append(todos[:i], todos[i+1:]...)
 	// 		return c.JSON(http.StatusNoContent, nil)
 	// 	}
 	// }
-	return c.JSON(http.StatusNotFound, "Todo not Found")
+	response := map[string]interface{}{
+		"message": "Delete Successfully!",
+	}
+	return c.JSON(http.StatusOK, response)
 }
